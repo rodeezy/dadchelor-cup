@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Bloop Drop</title>
+<meta name="description" content="Drag to steer Bloop through an endless fall. Dodge gates, grab coins, chain close calls into Frenzy.">
+<meta name="theme-color" content="#6ec8ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="game" aria-label="Bloop Drop game"></canvas>
+  <div id="safe-probe" aria-hidden="true"></div>
+
+  <header id="topbar" class="topbar">
+    <button class="pill pill-level" data-open="missions" aria-label="Level and missions">
+      <span class="lvl">Lv <b id="lvl-num">1</b></span>
+      <span class="xpbar"><i id="xp-fill"></i></span>
+    </button>
+    <div class="pills-right">
+      <button class="pill" data-open="shop" data-tab="upgrades" aria-label="Coins"><i class="coin-ico"></i><b id="coins-amt">0</b></button>
+      <button class="pill" data-open="shop" data-tab="gems" aria-label="Gems, open gem shop"><i class="gem-ico"></i><b id="gems-amt">0</b><span class="plus">+</span></button>
+    </div>
+  </header>
+
+  <!-- HOME -->
+  <section id="screen-home" class="screen home">
+    <h1 class="logo"><span>Bloop</span><span>Drop</span></h1>
+    <div class="home-spacer"></div>
+    <p class="best">Best <b id="home-best">0</b></p>
+    <button id="btn-play" class="btn btn-play">Play</button>
+    <nav class="home-nav">
+      <button class="nav-btn" data-open="shop">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8h15l-1.2 12.5H5.7z" fill="#ff5d73"/><path d="M9 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="#1b1530" stroke-width="2.2" stroke-linecap="round"/></svg>
+        Shop
+      </button>
+      <button class="nav-btn" data-open="missions">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="#ff5d73"/><circle cx="12" cy="12" r="6.5" fill="#fff"/><circle cx="12" cy="12" r="3.5" fill="#ff5d73"/></svg>
+        Missions<i class="badge" id="badge-missions" hidden></i>
+      </button>
+      <button class="nav-btn" data-open="daily">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="9" width="17" height="12" rx="2" fill="#7b5cff"/><rect x="2.5" y="6.5" width="19" height="4" rx="1.5" fill="#a48dff"/><rect x="10.5" y="6.5" width="3" height="14.5" fill="#ffd84f"/><path d="M12 6.5C9 2 6 4 8 6.5M12 6.5C15 2 18 4 16 6.5" fill="none" stroke="#ffd84f" stroke-width="2"/></svg>
+        Daily<i class="badge" id="badge-daily" hidden>!</i>
+      </button>
+      <button class="nav-btn" data-open="settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="#4a4166" stroke-width="4" stroke-dasharray="3.3 2.6"/><circle cx="12" cy="12" r="6" fill="#4a4166"/><circle cx="12" cy="12" r="2.5" fill="#fff"/></svg>
+        Settings
+      </button>
+    </nav>
+  </section>
+
+  <button id="btn-pause" class="btn-pause" hidden aria-label="Pause"><i></i><i></i></button>
+  <div id="hint" class="hint" hidden>
+    <div class="track"><div class="dot"></div></div>
+    <p>Drag to steer</p>
+  </div>
+
+  <!-- PAUSE -->
+  <div id="modal-pause" class="modal" hidden>
+    <div class="card">
+      <h2>Paused</h2>
+      <div class="stack">
+        <button id="btn-resume" class="btn btn-play">Resume</button>
+        <button id="btn-quit" class="btn btn-ghost">End run</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVIVE -->
+  <div id="modal-revive" class="modal" hidden>
+    <div class="card">
+      <h2>Keep falling?</h2>
+      <div class="ring" id="revive-ring"><span id="revive-count">5</span></div>
+      <p class="sub">Score so far <b id="revive-score">0</b></p>
+      <div class="stack">
+        <button id="btn-revive-ad" class="btn btn-ad"><span class="play-tri"></span>Watch ad to revive</button>
+        <button id="btn-revive-gems" class="btn btn-gem">Revive for <i class="gem-ico"></i><b id="revive-cost">10</b></button>
+        <button id="btn-revive-skip" class="btn-link">No thanks</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="modal-over" class="modal" hidden>
+    <div class="card over">
+      <p class="eyebrow" id="over-title">Run over</p>
+      <div class="score-big" id="over-score">0</div>
+      <p class="sub" id="over-best">Best 0</p>
+      <div class="stats">
+        <div><b id="st-depth">0</b><span>meters</span></div>
+        <div><b id="st-gates">0</b><span>gates</span></div>
+        <div><b id="st-close">0</b><span>close calls</span></div>
+      </div>
+      <div class="earn">
+        <div class="earn-row"><i class="coin-ico"></i><b id="earn-coins">+0</b><span id="earn-detail"></span></div>
+        <div class="earn-row" id="earn-gems-row" hidden><i class="gem-ico"></i><b id="earn-gems">+0</b><span>found</span></div>
+      </div>
+      <div id="over-missions" class="over-missions"></div>
+      <div id="over-goal" class="goal" hidden></div>
+      <div class="stack">
+        <button id="btn-double" class="btn btn-ad"><span class="play-tri"></span>Watch ad: double coins</button>
+        <div class="row">
+          <button id="btn-home" class="btn btn-ghost">Home</button>
+          <button id="btn-again" class="btn btn-play btn-again">Play again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHOP -->
+  <div id="modal-shop" class="modal sheet" hidden>
+    <div class="card">
+      <div class="sheet-head">
+        <h2>Shop</h2>
+        <button class="close" data-close aria-label="Close">×</button>
+      </div>
+      <div class="tabs" role="tablist">
+        <button role="tab" data-tab="skins" class="on">Skins</button>
+        <button role="tab" data-tab="upgrades">Upgrades</button>
+        <button role="tab" data-tab="gems">Gems</button>
+      </div>
+      <div class="sheet-body">
+        <div class="pane" id="pane-skins"><div class="skins" id="skins-grid"></div></div>
+        <div class="pane" id="pane-upgrades" hidden><div class="upgrades" id="upgrades-list"></div></div>
+        <div class="pane" id="pane-gems" hidden></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MISSIONS -->
+  <div id="modal-missions" class="modal" hidden>
+    <div class="card">
+      <button class="close" data-close aria-label="Close">×</button>
+      <h2>Missions</h2>
+      <div class="level-line">
+        <span>Level <b id="m-level">1</b></span>
+        <span class="xpbar big"><i id="m-xp-fill"></i></span>
+        <span class="muted" id="m-xp-text">0 / 0 XP</span>
+      </div>
+      <div id="missions-list" class="missions"></div>
+      <p class="muted small">Every point you score is XP. Each level pays out coins, and every 5th level adds gems.</p>
+    </div>
+  </div>
+
+  <!-- DAILY -->
+  <div id="modal-daily" class="modal" hidden>
+    <div class="card">
+      <button class="close" data-close aria-label="Close">×</button>
+      <h2>Daily reward</h2>
+      <p class="sub">Come back each day. Day 7 pays gems.</p>
+      <div class="days" id="days"></div>
+      <button id="btn-claim-daily" class="btn btn-play btn-mid">Claim</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="modal-settings" class="modal" hidden>
+    <div class="card">
+      <button class="close" data-close aria-label="Close">×</button>
+      <h2>Settings</h2>
+      <div class="settings">
+        <label class="toggle"><span>Sound</span><input type="checkbox" id="set-sound"><i></i></label>
+        <label class="toggle"><span>Vibration</span><input type="checkbox" id="set-haptics"><i></i></label>
+        <button id="btn-restore" class="btn btn-ghost btn-small">Restore purchases</button>
+        <a id="link-privacy" class="btn-link" href="#" target="_blank" rel="noopener">Privacy policy</a>
+        <button id="btn-reset" class="btn-link danger">Reset all progress</button>
+        <p class="muted small" id="version"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRM -->
+  <div id="modal-confirm" class="modal top" hidden>
+    <div class="card">
+      <h2 id="confirm-title"></h2>
+      <p class="sub" id="confirm-body"></p>
+      <div class="row">
+        <button id="confirm-cancel" class="btn btn-ghost">Cancel</button>
+        <button id="confirm-ok" class="btn btn-play btn-mid">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIMULATED AD (web only) -->
+  <div id="modal-ad" class="modal top ad" hidden>
+    <div class="ad-box">
+      <span class="ad-label">Ad</span>
+      <div class="ad-art"></div>
+      <p class="ad-title">Your ad here</p>
+      <p class="ad-copy">In the app build, a real AdMob video plays here and earns you money.</p>
+      <div class="ad-bar"><i id="ad-progress"></i></div>
+      <div class="row">
+        <button id="ad-skip" class="btn btn-ghost btn-small">Skip</button>
+        <button id="ad-done" class="btn btn-ad btn-small" disabled>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toasts" aria-live="polite"></div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+<script>
+  if ('serviceWorker' in navigator && location.protocol === 'https:' && !window.Capacitor) {
+    window.addEventListener('load', function () {
+      try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {}
+    });
+  }
+</script>
+</body>
+</html>

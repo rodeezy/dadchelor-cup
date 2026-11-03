@@ -1,0 +1,8 @@
+{
+  "appId": "com.example.bloopdrop",
+  "appName": "Bloop Drop",
+  "webDir": "www",
+  "backgroundColor": "#6ec8ff",
+  "android": { "allowMixedContent": false },
+  "ios": { "contentInset": "never" }
+}
